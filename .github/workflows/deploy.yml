@@ -26,21 +26,18 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: estoque-pwa/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: estoque-pwa
 
       - name: Build
         run: npm run build
-        working-directory: estoque-pwa
 
       - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: estoque-pwa/dist
+          path: dist
 
       - uses: actions/deploy-pages@v4
         id: deployment
