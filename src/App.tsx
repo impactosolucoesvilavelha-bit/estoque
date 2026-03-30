@@ -50,7 +50,7 @@ export default function App() {
   if (aguardandoSenha) return <DefinirSenha />;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/estoque">
       <Routes>
         <Route path="/login" element={currentUser ? <Navigate to={currentUser.role === 'admin' ? '/admin' : '/empresa'} replace /> : <Login />} />
 
