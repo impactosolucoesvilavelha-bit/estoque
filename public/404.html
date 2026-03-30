@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // Redireciona rotas SPA para o index com o path preservado
+      const path = window.location.pathname;
+      const base = '/estoque';
+      const route = path.startsWith(base) ? path.slice(base.length) : path;
+      sessionStorage.setItem('spa_redirect', route || '/');
+      window.location.replace(base + '/');
+    </script>
+  </head>
+  <body></body>
+</html>

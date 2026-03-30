@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Restaura rota após redirect do 404.html (GitHub Pages SPA)
+      const redirect = sessionStorage.getItem('spa_redirect');
+      if (redirect && redirect !== '/') {
+        sessionStorage.removeItem('spa_redirect');
+        window.history.replaceState(null, '', '/estoque' + redirect);
+      }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="Sistema de controle de estoque para fornecedores e empresas clientes" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Controle de Estoque</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>
