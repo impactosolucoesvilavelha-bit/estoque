@@ -1,3 +1,5 @@
+declare const __APP_VERSION__: string;
+
 export type UserRole = 'admin' | 'empresa';
 
 export interface User {

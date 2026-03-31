@@ -111,8 +111,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="p-3 border-t border-slate-800">
+        {/* Logout + versão */}
+        <div className="p-3 border-t border-slate-800 space-y-2">
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-950/40 transition-all"
@@ -120,6 +120,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <LogOut size={20} />
             Sair
           </button>
+          <p className="text-center text-slate-700 text-xs select-none">
+            v{__APP_VERSION__}
+          </p>
         </div>
       </aside>
 
