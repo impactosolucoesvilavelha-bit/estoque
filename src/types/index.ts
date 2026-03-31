@@ -10,6 +10,8 @@ export interface User {
 export interface Produto {
   id: string;
   nome: string;
+  marca?: string;
+  modelo?: string;
   unidade: string;
   estoqueTotal: number;
   criadoEm: string;

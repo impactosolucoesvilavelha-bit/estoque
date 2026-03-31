@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Package, Search, ChevronDown, ChevronUp, Building2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, Search, ChevronDown, ChevronUp, Building2, Copy } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { Modal } from '../../components/Modal';
 import type { Produto } from '../../types';
 
 type FormData = Omit<Produto, 'id' | 'criadoEm'>;
-const empty: FormData = { nome: '', unidade: 'un', estoqueTotal: 0 };
+const empty: FormData = { nome: '', marca: '', modelo: '', unidade: 'un', estoqueTotal: 0 };
 
 export function Produtos() {
   const { produtos, distribuicoes, usos, addProduto, updateProduto, deleteProduto } = useStore();
@@ -47,21 +47,34 @@ export function Produtos() {
   }, [distribuicoes, usos]);
 
   const filtered = produtos.filter((p) =>
-    p.nome.toLowerCase().includes(search.toLowerCase())
+    [p.nome, p.marca, p.modelo].filter(Boolean).join(' ').toLowerCase().includes(search.toLowerCase())
   );
 
   const openAdd = () => { setForm(empty); setModal('add'); };
+
   const openEdit = (p: Produto) => {
     setSelected(p);
-    setForm({ nome: p.nome, unidade: p.unidade, estoqueTotal: p.estoqueTotal });
+    setForm({ nome: p.nome, marca: p.marca ?? '', modelo: p.modelo ?? '', unidade: p.unidade, estoqueTotal: p.estoqueTotal });
     setModal('edit');
   };
+
+  const openDuplicate = (p: Produto) => {
+    setSelected(null);
+    setForm({ nome: p.nome, marca: p.marca ?? '', modelo: p.modelo ?? '', unidade: p.unidade, estoqueTotal: 0 });
+    setModal('add');
+  };
+
   const closeModal = () => { setModal(null); setSelected(null); };
 
   const handleSave = () => {
     if (!form.nome.trim()) return;
-    if (modal === 'add') addProduto(form);
-    else if (modal === 'edit' && selected) updateProduto(selected.id, form);
+    const data: FormData = {
+      ...form,
+      marca: form.marca?.trim() || undefined,
+      modelo: form.modelo?.trim() || undefined,
+    };
+    if (modal === 'add') addProduto(data);
+    else if (modal === 'edit' && selected) updateProduto(selected.id, data);
     closeModal();
   };
 
@@ -87,7 +100,7 @@ export function Produtos() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar produto..."
+          placeholder="Buscar por nome, marca ou modelo..."
           className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -114,7 +127,24 @@ export function Produtos() {
 
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-semibold truncate">{p.nome}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">Unidade: {p.unidade}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {p.marca && (
+                        <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">
+                          {p.marca}
+                        </span>
+                      )}
+                      {p.modelo && (
+                        <span className="text-xs text-blue-400 bg-blue-950/50 px-2 py-0.5 rounded-md font-medium">
+                          {p.modelo}
+                        </span>
+                      )}
+                      {!p.marca && !p.modelo && (
+                        <p className="text-slate-500 text-xs">Unidade: {p.unidade}</p>
+                      )}
+                    </div>
+                    {(p.marca || p.modelo) && (
+                      <p className="text-slate-600 text-xs mt-0.5">Unidade: {p.unidade}</p>
+                    )}
                   </div>
 
                   {/* Estoque central */}
@@ -144,14 +174,23 @@ export function Produtos() {
                       </button>
                     )}
                     <button
+                      onClick={() => openDuplicate(p)}
+                      className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 transition-all"
+                      title="Duplicar produto"
+                    >
+                      <Copy size={16} />
+                    </button>
+                    <button
                       onClick={() => openEdit(p)}
                       className="p-2 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 transition-all"
+                      title="Editar produto"
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       onClick={() => setConfirmDelete(p)}
                       className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/40 transition-all"
+                      title="Excluir produto"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -204,15 +243,39 @@ export function Produtos() {
         <Modal title={modal === 'add' ? 'Novo Produto' : 'Editar Produto'} onClose={closeModal}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Nome do Produto *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Nome do Item *</label>
               <input
                 type="text"
                 value={form.nome}
                 onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
-                placeholder="Ex: Parafuso M8"
+                placeholder="Ex: Amplificador"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Marca</label>
+                <input
+                  type="text"
+                  value={form.marca ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, marca: e.target.value }))}
+                  placeholder="Ex: LL Audio"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Modelo</label>
+                <input
+                  type="text"
+                  value={form.modelo ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, modelo: e.target.value }))}
+                  placeholder="Ex: 1600"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Unidade de Medida</label>
               <select
