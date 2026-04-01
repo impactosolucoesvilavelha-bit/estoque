@@ -49,14 +49,23 @@ export function useAppUpdate() {
   const applyUpdate = useCallback(async () => {
     setApplying(true);
     try {
-      const reg = await navigator.serviceWorker?.getRegistration();
-      await reg?.update();
+      // 1) Remove todos os SW — senão o Opera/outros podem continuar servindo HTML/JS antigo
+      const regs = await navigator.serviceWorker?.getRegistrations?.();
+      if (regs?.length) {
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      // 2) Limpa Cache Storage (PWA)
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
+      if (keys.length) {
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
     } catch {
-      /* ainda assim recarrega */
+      /* segue para o reload forçado */
     }
-    window.location.reload();
+    // 3) Troca a URL com parâmetro único — força o navegador a buscar o documento na rede (cache HTTP agressivo)
+    const url = new URL(window.location.href);
+    url.searchParams.set('_appv', String(Date.now()));
+    window.location.replace(url.toString());
   }, []);
 
   return {
