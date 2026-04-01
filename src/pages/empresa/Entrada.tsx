@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PackagePlus, CheckCircle, AlertTriangle, Trash2, Package, Calendar, ShoppingCart, History, ChevronDown, ChevronUp, ArrowRightLeft, Search, Plus, Minus } from 'lucide-react';
+import { PackagePlus, CheckCircle, AlertTriangle, Trash2, Package, Calendar, ShoppingCart, History, ChevronDown, ChevronUp, ArrowRightLeft, Search, Plus, Minus, XCircle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 interface ItemLote {
@@ -17,6 +17,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function Entrada() {
   const { currentUser, empresas, produtos, distribuicoes, addDistribuicoes } = useStore();
   const [success, setSuccess] = useState(false);
+  const [erro, setErro] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [data, setData] = useState(today());
   const [observacao, setObservacao] = useState('');
   const [lote, setLote] = useState<ItemLote[]>([]);
@@ -109,26 +111,34 @@ export function Entrada() {
       )
     );
 
-  const confirmarEntrada = () => {
-    if (!empresa || lote.length === 0) return;
-    const dataISO = new Date(data).toISOString();
-    addDistribuicoes(
-      lote.map((item) => ({
-        empresaId: empresa.id,
-        empresaNome: empresa.nome,
-        produtoId: item.produtoId,
-        produtoNome: item.produtoNome,
-        quantidade: item.quantidade,
-        data: dataISO,
-        observacao: observacao.trim() || undefined,
-      }))
-    );
-    setLote([]);
-    setData(today());
-    setObservacao('');
-    setBusca('');
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 5000);
+  const confirmarEntrada = async () => {
+    if (!empresa || lote.length === 0 || salvando) return;
+    setSalvando(true);
+    const dataISO = new Date(data + 'T12:00:00').toISOString();
+    try {
+      await addDistribuicoes(
+        lote.map((item) => ({
+          empresaId: empresa.id,
+          empresaNome: empresa.nome,
+          produtoId: item.produtoId,
+          produtoNome: item.produtoNome,
+          quantidade: item.quantidade,
+          data: dataISO,
+          observacao: observacao.trim() || undefined,
+        }))
+      );
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
+    } catch {
+      setErro(true);
+      setTimeout(() => setErro(false), 8000);
+    } finally {
+      setSalvando(false);
+      setLote([]);
+      setData(today());
+      setObservacao('');
+      setBusca('');
+    }
   };
 
   if (!empresa) {
@@ -160,6 +170,16 @@ export function Entrada() {
           <div>
             <p className="text-emerald-300 text-sm font-medium">Entrada confirmada!</p>
             <p className="text-emerald-700 text-xs">Os materiais foram adicionados ao seu estoque.</p>
+          </div>
+        </div>
+      )}
+
+      {erro && (
+        <div className="flex items-center gap-3 p-4 bg-red-950/50 border border-red-700/50 rounded-2xl">
+          <XCircle size={20} className="text-red-400 flex-shrink-0" />
+          <div>
+            <p className="text-red-300 text-sm font-medium">Erro ao salvar entrada</p>
+            <p className="text-red-700 text-xs">Verifique as permissões do banco de dados no Firebase Console.</p>
           </div>
         </div>
       )}
@@ -352,12 +372,16 @@ export function Entrada() {
             <div className="px-5 py-4 border-t border-slate-800">
               <button
                 onClick={confirmarEntrada}
-                disabled={lote.length === 0}
+                disabled={lote.length === 0 || salvando}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-violet-900/30"
               >
-                <PackagePlus size={18} />
-                Confirmar Entrada
-                {lote.length > 0 && (
+                {salvando ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <PackagePlus size={18} />
+                )}
+                {salvando ? 'Salvando...' : 'Confirmar Entrada'}
+                {!salvando && lote.length > 0 && (
                   <span className="bg-violet-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">
                     {lote.length} {lote.length === 1 ? 'item' : 'itens'}
                   </span>

@@ -170,7 +170,7 @@ interface AppState {
   deleteEmpresa: (id: string) => void;
 
   addDistribuicao: (dist: Omit<Distribuicao, 'id'>) => void;
-  addDistribuicoes: (dists: Omit<Distribuicao, 'id'>[]) => void;
+  addDistribuicoes: (dists: Omit<Distribuicao, 'id'>[]) => Promise<void>;
   deleteDistribuicao: (id: string) => void;
 
   addUso: (uso: Omit<UsoMaterial, 'id'>) => void;
@@ -410,19 +410,19 @@ export const useStore = create<AppState>()(
         let produtos = [...get().produtos];
         const novas: Distribuicao[] = [];
         const updates: Record<string, unknown> = {};
-        for (const data of dados) {
-          const idx = produtos.findIndex((p) => p.id === data.produtoId);
+        for (const item of dados) {
+          const idx = produtos.findIndex((p) => p.id === item.produtoId);
           if (idx === -1) continue;
           const id = generateId();
-          const novoEstoque = produtos[idx].estoqueTotal - data.quantidade;
+          const novoEstoque = produtos[idx].estoqueTotal - item.quantidade;
           produtos[idx] = { ...produtos[idx], estoqueTotal: novoEstoque };
-          const dist: Distribuicao = { ...data, id };
+          const dist: Distribuicao = { ...item, id };
           novas.push(dist);
-          updates[`distribuicoes/${data.empresaId}/${id}`] = dist;
-          updates[`produtos/${data.produtoId}/estoqueTotal`] = novoEstoque;
+          updates[`distribuicoes/${item.empresaId}/${id}`] = dist;
+          updates[`produtos/${item.produtoId}/estoqueTotal`] = novoEstoque;
         }
         set((s) => ({ distribuicoes: [...s.distribuicoes, ...novas], produtos }));
-        dbUpdate(dbRef(db), updates);
+        return dbUpdate(dbRef(db), updates);
       },
 
       deleteDistribuicao: (id) => {

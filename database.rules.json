@@ -1,0 +1,40 @@
+{
+  "rules": {
+    "produtos": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "empresas": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+      }
+    },
+    "login_index": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "distribuicoes": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$empresaId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() === $empresaId)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() === $empresaId)"
+      }
+    },
+    "usos": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$empresaId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() === $empresaId)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() === $empresaId)"
+      }
+    },
+    "pedidosNF": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    }
+  }
+}
