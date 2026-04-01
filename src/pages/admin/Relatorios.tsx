@@ -11,8 +11,6 @@ interface ItemRelatorio {
   produtoNome: string;
   quantidade: number;
   observacao?: string;
-  /** Data/hora deste lançamento (cada linha de uso) */
-  data: string;
 }
 
 interface PedidoAgrupado {
@@ -79,7 +77,6 @@ export function Relatorios() {
         produtoNome: u.produtoNome,
         quantidade: u.quantidade,
         observacao: u.observacao,
-        data: u.data,
       });
       map[chave].totalItens += u.quantidade;
     });
@@ -121,29 +118,23 @@ export function Relatorios() {
           p.numeroPedido,
           p.igreja,
           getStatus(p.chave) === 'emitida' ? 'Emitida' : 'Em Aberto',
-          item.produtoId,
           item.produtoNome,
           pr?.marca || '',
           pr?.modelo || '',
-          pr?.unidade || '',
-          new Date(item.data).toLocaleString('pt-BR'),
           item.quantidade,
           item.observacao || '',
         ];
       })
     );
     const headers = [
-      'Data pedido',
+      'Data',
       'Empresa',
       'Nº Pedido',
       'Igreja',
       'Status NF',
-      'ID produto',
       'Produto',
       'Marca',
       'Modelo',
-      'Unidade',
-      'Data/hora uso',
       'Quantidade',
       'Observação',
     ];
@@ -366,19 +357,18 @@ export function Relatorios() {
                     </div>
                     {pedido.itens.map((item, i) => {
                       const pr = produtos.find((x) => x.id === item.produtoId);
-                      const dataUso = new Date(item.data);
                       return (
                         <div
-                          key={`${item.produtoId}-${item.data}-${i}`}
+                          key={`${item.produtoId}-${i}`}
                           className="px-5 py-3 border-t border-slate-800/60 hover:bg-slate-800/20 transition-colors"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                               <PackageIcon size={16} className="text-emerald-500" />
                             </div>
-                            <div className="flex-1 min-w-0 space-y-2">
+                            <div className="flex-1 min-w-0">
                               <p className="text-white text-sm font-semibold leading-snug">{item.produtoNome}</p>
-                              <div className="flex flex-wrap gap-2 text-xs">
+                              <div className="flex flex-wrap gap-2 mt-1.5 text-xs">
                                 {pr?.marca && (
                                   <span className="text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">
                                     Marca: <span className="text-slate-100">{pr.marca}</span>
@@ -389,36 +379,10 @@ export function Relatorios() {
                                     Modelo: <span className="text-blue-100">{pr.modelo}</span>
                                   </span>
                                 )}
-                                <span className="text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
-                                  Unidade: <span className="text-slate-200">{pr?.unidade ?? '—'}</span>
-                                </span>
-                                <span className="text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded-md">
-                                  ID: <span className="font-mono text-slate-400">{item.produtoId}</span>
-                                </span>
                               </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                                <span>
-                                  Data/hora do uso:{' '}
-                                  <span className="text-slate-300">
-                                    {dataUso.toLocaleString('pt-BR', {
-                                      day: '2-digit',
-                                      month: 'short',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </span>
-                                </span>
-                              </div>
-                              <p className="text-slate-400 text-xs leading-relaxed border-l-2 border-slate-600 pl-2">
-                                <span className="text-slate-500">Observação: </span>
-                                {item.observacao || '—'}
-                              </p>
                             </div>
-                            <div className="flex sm:flex-col items-center sm:items-end gap-1 sm:min-w-[5rem] flex-shrink-0">
-                              <span className="text-[10px] uppercase text-slate-500 font-semibold sm:hidden">Quantidade</span>
+                            <div className="flex-shrink-0 text-right">
                               <span className="text-amber-400 font-bold text-lg tabular-nums">{item.quantidade}</span>
-                              <span className="text-slate-500 text-xs">{pr?.unidade ?? 'un'}</span>
                             </div>
                           </div>
                         </div>
