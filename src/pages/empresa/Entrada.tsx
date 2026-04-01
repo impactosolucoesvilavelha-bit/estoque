@@ -18,6 +18,7 @@ export function Entrada() {
   const { currentUser, empresas, produtos, distribuicoes, addDistribuicoes } = useStore();
   const [success, setSuccess] = useState(false);
   const [erro, setErro] = useState(false);
+  const [erroDetalhe, setErroDetalhe] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [data, setData] = useState(today());
   const [observacao, setObservacao] = useState('');
@@ -114,6 +115,7 @@ export function Entrada() {
   const confirmarEntrada = async () => {
     if (!empresa || lote.length === 0 || salvando) return;
     setSalvando(true);
+    setErroDetalhe(null);
     const dataISO = new Date(data + 'T12:00:00').toISOString();
     try {
       await addDistribuicoes(
@@ -129,9 +131,19 @@ export function Entrada() {
       );
       setSuccess(true);
       setTimeout(() => setSuccess(false), 5000);
-    } catch {
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === 'object' && 'code' in e && 'message' in e
+          ? `${String((e as { code: unknown }).code)} — ${String((e as { message: unknown }).message)}`
+          : e instanceof Error
+            ? e.message
+            : String(e);
+      setErroDetalhe(msg);
       setErro(true);
-      setTimeout(() => setErro(false), 8000);
+      setTimeout(() => {
+        setErro(false);
+        setErroDetalhe(null);
+      }, 12000);
     } finally {
       setSalvando(false);
       setLote([]);
@@ -177,9 +189,19 @@ export function Entrada() {
       {erro && (
         <div className="flex items-center gap-3 p-4 bg-red-950/50 border border-red-700/50 rounded-2xl">
           <XCircle size={20} className="text-red-400 flex-shrink-0" />
-          <div>
+          <div className="min-w-0">
             <p className="text-red-300 text-sm font-medium">Erro ao salvar entrada</p>
-            <p className="text-red-700 text-xs">Verifique as permissões do banco de dados no Firebase Console.</p>
+            {erroDetalhe ? (
+              <p className="text-red-400/90 text-xs font-mono break-all mt-1">{erroDetalhe}</p>
+            ) : (
+              <p className="text-red-700 text-xs mt-1">Tente de novo ou fale com o administrador.</p>
+            )}
+            {erroDetalhe?.includes('PERMISSION_DENIED') || erroDetalhe?.includes('permission_denied') ? (
+              <p className="text-red-700 text-xs mt-2">
+                Se aparecer permissão negada: no Firebase Console → Realtime Database → Regras, publique o arquivo{' '}
+                <span className="font-mono">database.rules.json</span> do projeto (inclui leitura por authUid da empresa).
+              </p>
+            ) : null}
           </div>
         </div>
       )}

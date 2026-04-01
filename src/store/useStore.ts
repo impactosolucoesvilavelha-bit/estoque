@@ -44,6 +44,29 @@ const toArray = <T>(obj: Record<string, Omit<T, 'id'>> | null): T[] =>
 /** Firebase RTDB não permite . # $ [ ] / nas chaves */
 const fbSafeKey = (key: string) => key.replace(/[.#$[\]/]/g, '_');
 
+/** update() do RTDB falha se algum valor for `undefined` */
+function omitUndefined(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
+/** Mesmo valor que as regras usam em users/{uid} — evita divergência com estado da UI */
+async function empresaIdCanonicoParaWrite(): Promise<string | null> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return null;
+  const snap = await dbGet(dbRef(db, `users/${uid}`));
+  if (!snap.exists()) return null;
+  const row = snap.val() as { role?: string; empresaId?: unknown; empresa_id?: unknown };
+  if (row.role === 'admin') return null;
+  const raw = row.empresaId ?? row.empresa_id;
+  if (raw == null || raw === '') return null;
+  return String(raw);
+}
+
 // ─── Subscriptions ───────────────────────────────────────────────────────────
 
 const unsubs: Unsubscribe[] = [];
@@ -434,17 +457,27 @@ export const useStore = create<AppState>()(
         if (!produto) return;
         const novoEstoque = produto.estoqueTotal - data.quantidade;
         const dist: Distribuicao = { ...data, id };
+        const payload = omitUndefined({ ...dist } as Record<string, unknown>);
         set((s) => ({
           distribuicoes: [...s.distribuicoes, dist],
           produtos: s.produtos.map((p) => p.id === data.produtoId ? { ...p, estoqueTotal: novoEstoque } : p),
         }));
         dbUpdate(dbRef(db), {
-          [`distribuicoes/${data.empresaId}/${id}`]: dist,
+          [`distribuicoes/${data.empresaId}/${id}`]: payload,
           [`produtos/${data.produtoId}/estoqueTotal`]: novoEstoque,
         });
       },
 
-      addDistribuicoes: (dados) => {
+      addDistribuicoes: async (dados) => {
+        if (dados.length === 0) return;
+
+        const cu = get().currentUser;
+        const eidRtdb = await empresaIdCanonicoParaWrite();
+        const empresaIdBase =
+          cu?.role === 'admin'
+            ? String(dados[0].empresaId)
+            : eidRtdb ?? (cu?.empresaId != null && cu.empresaId !== '' ? String(cu.empresaId) : String(dados[0].empresaId));
+
         let produtos = [...get().produtos];
         const novas: Distribuicao[] = [];
         const updates: Record<string, unknown> = {};
@@ -454,13 +487,18 @@ export const useStore = create<AppState>()(
           const id = generateId();
           const novoEstoque = produtos[idx].estoqueTotal - item.quantidade;
           produtos[idx] = { ...produtos[idx], estoqueTotal: novoEstoque };
-          const dist: Distribuicao = { ...item, id };
+          const dist: Distribuicao = { ...item, id, empresaId: empresaIdBase };
           novas.push(dist);
-          updates[`distribuicoes/${item.empresaId}/${id}`] = dist;
+          updates[`distribuicoes/${empresaIdBase}/${id}`] = omitUndefined({ ...dist } as Record<string, unknown>);
           updates[`produtos/${item.produtoId}/estoqueTotal`] = novoEstoque;
         }
+
+        if (Object.keys(updates).length === 0) {
+          throw new Error('Nenhum produto válido no lote.');
+        }
+
+        await dbUpdate(dbRef(db), updates);
         set((s) => ({ distribuicoes: [...s.distribuicoes, ...novas], produtos }));
-        return dbUpdate(dbRef(db), updates);
       },
 
       deleteDistribuicao: (id) => {

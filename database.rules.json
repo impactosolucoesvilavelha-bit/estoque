@@ -20,14 +20,14 @@
     },
     "distribuicoes": {
       "$empresaId": {
-        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId)",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId)"
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId || root.child('empresas').child($empresaId).child('authUid').val() == auth.uid)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId || root.child('empresas').child($empresaId).child('authUid').val() == auth.uid)"
       }
     },
     "usos": {
       "$empresaId": {
-        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId)",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId)"
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId || root.child('empresas').child($empresaId).child('authUid').val() == auth.uid)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('empresaId').val() == $empresaId || root.child('users').child(auth.uid).child('empresa_id').val() == $empresaId || root.child('empresas').child($empresaId).child('authUid').val() == auth.uid)"
       }
     },
     "pedidosNF": {
