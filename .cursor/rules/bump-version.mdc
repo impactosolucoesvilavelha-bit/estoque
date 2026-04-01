@@ -1,0 +1,27 @@
+---
+description: Sempre bumpar versão e cache do SW ao fazer mudanças no código
+alwaysApply: true
+---
+
+# Bumpar versão a cada mudança de código
+
+A cada alteração de código (feature, fix, refactor), **obrigatoriamente**:
+
+1. Incrementar a versão em `package.json` (semver: patch `x.x.N` para fixes, minor `x.N.0` para features)
+2. Incrementar o `CACHE_NAME` em `public/sw.js` na mesma proporção (ex: `estoque-pwa-v3`, `estoque-pwa-v4`...)
+
+Isso garante que o usuário sempre veja a versão nova no indicador da sidebar e que o cache antigo seja descartado automaticamente.
+
+## Exemplo
+
+```
+// package.json
+"version": "1.2.0"   ← era 1.1.0
+
+// public/sw.js
+const CACHE_NAME = 'estoque-pwa-v3';   ← era v2
+```
+
+## Regra do indicador de versão
+
+O `__APP_VERSION__` é injetado automaticamente do `package.json` pelo Vite — basta atualizar o `package.json` que o número na sidebar já reflete.
