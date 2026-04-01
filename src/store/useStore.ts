@@ -129,13 +129,16 @@ function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
       }),
     );
   } else if (eid) {
+    const aplicarEmpresa = (data: Record<string, unknown> | null) => {
+      if (data && typeof data === 'object') {
+        useStore.setState({ empresas: [{ id: eid, ...data } as Empresa] });
+      }
+    };
+
     // Empresa: lê apenas os próprios dados (economiza downloads)
     unsubs.push(
       onValue(dbRef(db, `empresas/${eid}`), (snap) => {
-        const data = snap.val();
-        if (data) {
-          useStore.setState({ empresas: [{ id: eid, ...data } as Empresa] });
-        }
+        aplicarEmpresa(snap.exists() ? (snap.val() as Record<string, unknown>) : null);
       }),
     );
     unsubs.push(
@@ -148,6 +151,13 @@ function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
         useStore.setState({ usos: toArray<UsoMaterial>(snap.val()) });
       }),
     );
+
+    // Garante 1 leitura imediata (onValue às vezes atrasa; evita tela presa em loading)
+    void dbGet(dbRef(db, `empresas/${eid}`))
+      .then((snap) => {
+        aplicarEmpresa(snap.exists() ? (snap.val() as Record<string, unknown>) : null);
+      })
+      .catch(() => { /* permissão / rede — onValue pode ainda entregar */ });
   }
 }
 
@@ -231,7 +241,13 @@ export const useStore = create<AppState>()(
               }
 
               if (snap.exists()) {
-                const data = snap.val() as { nome: string; role: 'admin' | 'empresa'; empresaId?: string; primeiroLogin?: boolean };
+                const data = snap.val() as {
+                  nome: string;
+                  role: 'admin' | 'empresa';
+                  empresaId?: string | number;
+                  empresa_id?: string | number;
+                  primeiroLogin?: boolean;
+                };
 
                 // Primeiro login: empresa precisa definir senha
                 if (data.primeiroLogin) {
@@ -239,8 +255,9 @@ export const useStore = create<AppState>()(
                   return;
                 }
 
+                const rawEid = data.empresaId ?? data.empresa_id;
                 const empresaIdNorm =
-                  data.empresaId != null && data.empresaId !== '' ? String(data.empresaId) : undefined;
+                  rawEid != null && rawEid !== '' ? String(rawEid) : undefined;
                 const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: empresaIdNorm };
 
                 setupListeners(data.role, empresaIdNorm);
@@ -314,9 +331,15 @@ export const useStore = create<AppState>()(
           await dbUpdate(dbRef(db, `users/${fbUser.uid}`), { primeiroLogin: false });
           const snap = await dbGet(dbRef(db, `users/${fbUser.uid}`));
           if (!snap.exists()) return false;
-          const data = snap.val() as { nome: string; role: 'admin' | 'empresa'; empresaId?: string };
+          const data = snap.val() as {
+            nome: string;
+            role: 'admin' | 'empresa';
+            empresaId?: string | number;
+            empresa_id?: string | number;
+          };
+          const rawEid = data.empresaId ?? data.empresa_id;
           const empresaIdNorm =
-            data.empresaId != null && data.empresaId !== '' ? String(data.empresaId) : undefined;
+            rawEid != null && rawEid !== '' ? String(rawEid) : undefined;
           const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: empresaIdNorm };
 
           setupListeners(data.role, empresaIdNorm);
@@ -511,6 +534,13 @@ export const useStore = create<AppState>()(
         _uid: state._uid,
         produtos: state.produtos,
         pedidosNF: state.pedidosNF,
+      }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as object),
+        empresas: current.empresas,
+        distribuicoes: current.distribuicoes,
+        usos: current.usos,
       }),
     },
   ),
