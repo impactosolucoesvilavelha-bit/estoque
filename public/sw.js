@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estoque-pwa-v4';
+const CACHE_NAME = 'estoque-pwa-v5';
 const urlsToCache = [
   '/estoque/',
   '/estoque/index.html',

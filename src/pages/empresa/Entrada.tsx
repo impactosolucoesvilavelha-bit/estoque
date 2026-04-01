@@ -171,9 +171,9 @@ export function Entrada() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,520px)_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,480px)_1fr] gap-5 items-start">
 
-        {/* ── Coluna esquerda: formulário ── */}
+        {/* ── Coluna esquerda: dados + lista de seleção ── */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
 
           {/* Data e obs */}
@@ -205,13 +205,11 @@ export function Entrada() {
           </div>
 
           {/* Lista de materiais disponíveis */}
-          <div className="border-b border-slate-800">
+          <div>
             <div className="px-5 pt-4 pb-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Materiais disponíveis
-                <span className="ml-2 text-slate-600 normal-case font-normal">
-                  — clique em + para adicionar
-                </span>
+                <span className="ml-2 text-slate-600 normal-case font-normal">— clique em + para selecionar</span>
               </p>
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -225,7 +223,7 @@ export function Entrada() {
               </div>
             </div>
 
-            <div className="max-h-64 overflow-y-auto divide-y divide-slate-800/60">
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-800/60">
               {produtosFiltrados.length === 0 ? (
                 <div className="px-5 py-6 text-center text-slate-600 text-sm">
                   Nenhum material encontrado.
@@ -274,21 +272,30 @@ export function Entrada() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* Lista do lote */}
-          {lote.length === 0 ? (
-            <div className="px-5 py-8 text-center text-slate-600">
-              <ShoppingCart size={28} className="mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Nenhum material adicionado ainda.</p>
-              <p className="text-xs mt-1 text-slate-700">Clique em + nos materiais acima.</p>
+        {/* ── Coluna direita: pedido + histórico ── */}
+        <div className="space-y-4">
+
+          {/* Pedido atual */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-800 bg-slate-800/30 flex items-center gap-2">
+              <ShoppingCart size={15} className="text-violet-400" />
+              <p className="text-sm font-semibold text-white">Pedido</p>
+              {lote.length > 0 && (
+                <span className="ml-auto text-xs bg-violet-600/30 text-violet-300 font-semibold px-2 py-0.5 rounded-full">
+                  {lote.length} {lote.length === 1 ? 'item' : 'itens'}
+                </span>
+              )}
             </div>
-          ) : (
-            <div>
-              <div className="px-5 py-2 bg-slate-800/30 flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Pedido — {lote.length} {lote.length === 1 ? 'item' : 'itens'}
-                </p>
+
+            {lote.length === 0 ? (
+              <div className="px-5 py-8 text-center text-slate-600">
+                <ShoppingCart size={26} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhum material selecionado.</p>
+                <p className="text-xs mt-1 text-slate-700">Clique em + na lista ao lado.</p>
               </div>
+            ) : (
               <div className="divide-y divide-slate-800/60">
                 {lote.map((item) => (
                   <div key={item.produtoId} className="px-5 py-3 flex items-center gap-3">
@@ -340,86 +347,86 @@ export function Entrada() {
                   </div>
                 ))}
               </div>
+            )}
+
+            <div className="px-5 py-4 border-t border-slate-800">
+              <button
+                onClick={confirmarEntrada}
+                disabled={lote.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-violet-900/30"
+              >
+                <PackagePlus size={18} />
+                Confirmar Entrada
+                {lote.length > 0 && (
+                  <span className="bg-violet-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+                    {lote.length} {lote.length === 1 ? 'item' : 'itens'}
+                  </span>
+                )}
+              </button>
             </div>
-          )}
-
-          {/* Confirmar */}
-          <div className="px-5 py-4 border-t border-slate-800">
-            <button
-              onClick={confirmarEntrada}
-              disabled={lote.length === 0}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-violet-900/30"
-            >
-              <PackagePlus size={18} />
-              Confirmar Entrada
-              {lote.length > 0 && (
-                <span className="bg-violet-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">
-                  {lote.length} {lote.length === 1 ? 'item' : 'itens'}
-                </span>
-              )}
-            </button>
           </div>
-        </div>
 
-        {/* ── Coluna direita: histórico de entradas ── */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-800 bg-slate-800/30 flex items-center gap-2">
-            <History size={16} className="text-violet-400" />
-            <p className="text-sm font-semibold text-white">Histórico de Entradas</p>
-            {historicoGrupos.length > 0 && (
-              <span className="ml-auto text-xs text-slate-500">{historicoGrupos.reduce((s, [, itens]) => s + itens.length, 0)} registros</span>
+          {/* Histórico de entradas */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-800 bg-slate-800/30 flex items-center gap-2">
+              <History size={16} className="text-violet-400" />
+              <p className="text-sm font-semibold text-white">Histórico de Entradas</p>
+              {historicoGrupos.length > 0 && (
+                <span className="ml-auto text-xs text-slate-500">{historicoGrupos.reduce((s, [, itens]) => s + itens.length, 0)} registros</span>
+              )}
+            </div>
+
+            {historicoGrupos.length === 0 ? (
+              <div className="px-5 py-12 text-center text-slate-600">
+                <ArrowRightLeft size={28} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhuma entrada registrada ainda.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800/60 max-h-96 overflow-y-auto">
+                {historicoGrupos.map(([dia, itens]) => {
+                  const expanded = expandedGroups.has(dia);
+                  const dataFormatada = new Date(dia + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+                  return (
+                    <div key={dia}>
+                      <button
+                        onClick={() => toggleGroup(dia)}
+                        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-800/40 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
+                          <ArrowRightLeft size={14} className="text-violet-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-200 text-sm font-medium">{dataFormatada}</p>
+                          <p className="text-slate-500 text-xs mt-0.5">{itens.length} {itens.length === 1 ? 'item' : 'itens'} recebidos</p>
+                        </div>
+                        {expanded
+                          ? <ChevronUp size={15} className="text-slate-600 flex-shrink-0" />
+                          : <ChevronDown size={15} className="text-slate-600 flex-shrink-0" />
+                        }
+                      </button>
+                      {expanded && (
+                        <div className="bg-slate-800/20 border-t border-slate-800/60">
+                          {itens.map((item) => (
+                            <div key={item.id} className="flex items-center gap-3 px-5 py-2.5 border-b border-slate-800/40 last:border-0">
+                              <div className="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center flex-shrink-0">
+                                <Package size={12} className="text-slate-400" />
+                              </div>
+                              <p className="text-slate-300 text-xs flex-1 truncate">{item.produtoNome}</p>
+                              {item.observacao && (
+                                <p className="text-slate-600 text-xs truncate max-w-24 hidden sm:block">{item.observacao}</p>
+                              )}
+                              <p className="text-violet-400 font-bold text-sm flex-shrink-0">{item.quantidade}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
-          {historicoGrupos.length === 0 ? (
-            <div className="px-5 py-12 text-center text-slate-600">
-              <ArrowRightLeft size={28} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Nenhuma entrada registrada ainda.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-800/60 max-h-[600px] overflow-y-auto">
-              {historicoGrupos.map(([dia, itens]) => {
-                const expanded = expandedGroups.has(dia);
-                const dataFormatada = new Date(dia + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-                return (
-                  <div key={dia}>
-                    <button
-                      onClick={() => toggleGroup(dia)}
-                      className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-800/40 transition-colors text-left"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                        <ArrowRightLeft size={14} className="text-violet-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-slate-200 text-sm font-medium">{dataFormatada}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">{itens.length} {itens.length === 1 ? 'item' : 'itens'} recebidos</p>
-                      </div>
-                      {expanded
-                        ? <ChevronUp size={15} className="text-slate-600 flex-shrink-0" />
-                        : <ChevronDown size={15} className="text-slate-600 flex-shrink-0" />
-                      }
-                    </button>
-                    {expanded && (
-                      <div className="bg-slate-800/20 border-t border-slate-800/60">
-                        {itens.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 px-5 py-2.5 border-b border-slate-800/40 last:border-0">
-                            <div className="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center flex-shrink-0">
-                              <Package size={12} className="text-slate-400" />
-                            </div>
-                            <p className="text-slate-300 text-xs flex-1 truncate">{item.produtoNome}</p>
-                            {item.observacao && (
-                              <p className="text-slate-600 text-xs truncate max-w-24 hidden sm:block">{item.observacao}</p>
-                            )}
-                            <p className="text-violet-400 font-bold text-sm flex-shrink-0">{item.quantidade}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
 
       </div>
