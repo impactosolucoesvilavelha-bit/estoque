@@ -46,9 +46,11 @@ export function Produtos() {
     return totais;
   }, [distribuicoes, usos]);
 
-  const filtered = produtos.filter((p) =>
-    [p.nome, p.marca, p.modelo].filter(Boolean).join(' ').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = produtos
+    .filter((p) =>
+      [p.nome, p.marca, p.modelo].filter(Boolean).join(' ').toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
   const openAdd = () => { setForm(empty); setModal('add'); };
 

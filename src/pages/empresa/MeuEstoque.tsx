@@ -42,10 +42,12 @@ export function MeuEstoque() {
         }
       });
 
-    return Object.values(map).map((item) => ({
-      ...item,
-      quantidadeDisponivel: item.quantidadeRecebida - item.quantidadeUsada,
-    }));
+    return Object.values(map)
+      .map((item) => ({
+        ...item,
+        quantidadeDisponivel: item.quantidadeRecebida - item.quantidadeUsada,
+      }))
+      .sort((a, b) => a.produtoNome.localeCompare(b.produtoNome, 'pt-BR'));
   }, [empresa, distribuicoes, usos, produtos]);
 
   const totalDisponivel = useMemo(
@@ -98,6 +100,7 @@ export function MeuEstoque() {
           <p className="text-sm font-semibold text-slate-400">Materiais</p>
           {miniEstoque.map((item) => {
             const baixo = item.quantidadeDisponivel < 5;
+            const prod = produtos.find((p) => p.id === item.produtoId);
             return (
               <div key={item.produtoId} className="bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${baixo ? 'bg-amber-600/20' : 'bg-emerald-600/20'}`}>
@@ -105,7 +108,20 @@ export function MeuEstoque() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold truncate">{item.produtoNome}</p>
-                  <p className="text-slate-500 text-xs mt-0.5">{item.unidade}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    {prod?.marca && (
+                      <span className="text-xs text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{prod.marca}</span>
+                    )}
+                    {prod?.modelo && (
+                      <span className="text-xs text-blue-400 bg-blue-950/50 px-1.5 py-0.5 rounded font-medium">{prod.modelo}</span>
+                    )}
+                    {!prod?.marca && !prod?.modelo && (
+                      <p className="text-slate-500 text-xs">{item.unidade}</p>
+                    )}
+                  </div>
+                  {(prod?.marca || prod?.modelo) && (
+                    <p className="text-slate-600 text-xs mt-0.5">{item.unidade}</p>
+                  )}
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className={`text-2xl font-bold ${baixo ? 'text-amber-400' : 'text-emerald-400'}`}>

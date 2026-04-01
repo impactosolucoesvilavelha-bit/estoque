@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
-import { PackagePlus, CheckCircle, AlertTriangle, Plus, Trash2, Package, Calendar, ShoppingCart, History, ChevronDown, ChevronUp, ArrowRightLeft } from 'lucide-react';
+import { PackagePlus, CheckCircle, AlertTriangle, Trash2, Package, Calendar, ShoppingCart, History, ChevronDown, ChevronUp, ArrowRightLeft, Search, Plus, Minus } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 interface ItemLote {
   produtoId: string;
   produtoNome: string;
+  produtoMarca?: string;
+  produtoModelo?: string;
   unidade: string;
   quantidade: number;
   disponivel: number;
@@ -18,8 +20,7 @@ export function Entrada() {
   const [data, setData] = useState(today());
   const [observacao, setObservacao] = useState('');
   const [lote, setLote] = useState<ItemLote[]>([]);
-  const [selecionado, setSelecionado] = useState('');
-  const [qtdTemp, setQtdTemp] = useState(1);
+  const [busca, setBusca] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const empresa = useMemo(
@@ -28,9 +29,22 @@ export function Entrada() {
   );
 
   const produtosDisponiveis = useMemo(
-    () => produtos.filter((p) => p.estoqueTotal > 0),
+    () =>
+      produtos
+        .filter((p) => p.estoqueTotal > 0)
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
     [produtos]
   );
+
+  const idsNoLote = useMemo(() => new Set(lote.map((i) => i.produtoId)), [lote]);
+
+  const produtosFiltrados = useMemo(() => {
+    const q = busca.toLowerCase().trim();
+    if (!q) return produtosDisponiveis;
+    return produtosDisponiveis.filter((p) =>
+      [p.nome, p.marca, p.modelo].filter(Boolean).join(' ').toLowerCase().includes(q)
+    );
+  }, [produtosDisponiveis, busca]);
 
   // Histórico de entradas agrupado por data
   const historicoGrupos = useMemo(() => {
@@ -57,36 +71,40 @@ export function Entrada() {
     });
   };
 
-  /* Produto selecionado no picker */
-  const produtoSelecionado = produtos.find((p) => p.id === selecionado);
-
-  /* IDs já no lote para desabilitar duplicatas */
-  const idsNoLote = new Set(lote.map((i) => i.produtoId));
-
-  const adicionarAoLote = () => {
-    if (!produtoSelecionado || qtdTemp <= 0 || qtdTemp > produtoSelecionado.estoqueTotal) return;
+  const adicionarAoLote = (produtoId: string) => {
+    const p = produtos.find((x) => x.id === produtoId);
+    if (!p || idsNoLote.has(produtoId)) return;
     setLote((prev) => [
       ...prev,
       {
-        produtoId: produtoSelecionado.id,
-        produtoNome: produtoSelecionado.nome,
-        unidade: produtoSelecionado.unidade,
-        quantidade: qtdTemp,
-        disponivel: produtoSelecionado.estoqueTotal,
+        produtoId: p.id,
+        produtoNome: p.nome,
+        produtoMarca: p.marca,
+        produtoModelo: p.modelo,
+        unidade: p.unidade,
+        quantidade: 1,
+        disponivel: p.estoqueTotal,
       },
     ]);
-    setSelecionado('');
-    setQtdTemp(1);
   };
 
   const removerDoLote = (produtoId: string) =>
     setLote((prev) => prev.filter((i) => i.produtoId !== produtoId));
 
-  const atualizarQtdLote = (produtoId: string, qtd: number) =>
+  const atualizarQtdLote = (produtoId: string, delta: number) =>
     setLote((prev) =>
       prev.map((i) =>
         i.produtoId === produtoId
-          ? { ...i, quantidade: Math.max(1, Math.min(qtd, i.disponivel)) }
+          ? { ...i, quantidade: Math.max(1, Math.min(i.quantidade + delta, i.disponivel)) }
+          : i
+      )
+    );
+
+  const setQtdLote = (produtoId: string, val: number) =>
+    setLote((prev) =>
+      prev.map((i) =>
+        i.produtoId === produtoId
+          ? { ...i, quantidade: Math.max(1, Math.min(val, i.disponivel)) }
           : i
       )
     );
@@ -108,6 +126,7 @@ export function Entrada() {
     setLote([]);
     setData(today());
     setObservacao('');
+    setBusca('');
     setSuccess(true);
     setTimeout(() => setSuccess(false), 5000);
   };
@@ -152,10 +171,11 @@ export function Entrada() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,480px)_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,520px)_1fr] gap-5 items-start">
 
         {/* ── Coluna esquerda: formulário ── */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+
           {/* Data e obs */}
           <div className="px-5 py-4 border-b border-slate-800 bg-slate-800/30">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Dados da Retirada</p>
@@ -184,45 +204,75 @@ export function Entrada() {
             </div>
           </div>
 
-          {/* Picker de material */}
-          <div className="px-5 py-4 border-b border-slate-800">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Adicionar Material</p>
-            <div className="flex gap-2">
-              <select
-                value={selecionado}
-                onChange={(e) => { setSelecionado(e.target.value); setQtdTemp(1); }}
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-              >
-                <option value="">Selecione o material</option>
-                {produtosDisponiveis
-                  .filter((p) => !idsNoLote.has(p.id))
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome} ({p.estoqueTotal} {p.unidade})
-                    </option>
-                  ))}
-              </select>
-              <input
-                type="number"
-                min={1}
-                max={produtoSelecionado?.estoqueTotal}
-                value={qtdTemp}
-                onChange={(e) => setQtdTemp(Number(e.target.value))}
-                className="w-20 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={adicionarAoLote}
-                disabled={!selecionado || qtdTemp <= 0 || (produtoSelecionado ? qtdTemp > produtoSelecionado.estoqueTotal : false)}
-                className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all flex-shrink-0"
-              >
-                <Plus size={18} className="text-white" />
-              </button>
-            </div>
-            {produtoSelecionado && (
-              <p className="text-xs text-slate-600 mt-1.5">
-                Disponível no estoque central: <span className="text-slate-400 font-medium">{produtoSelecionado.estoqueTotal} {produtoSelecionado.unidade}</span>
+          {/* Lista de materiais disponíveis */}
+          <div className="border-b border-slate-800">
+            <div className="px-5 pt-4 pb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                Materiais disponíveis
+                <span className="ml-2 text-slate-600 normal-case font-normal">
+                  — clique em + para adicionar
+                </span>
               </p>
-            )}
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar por nome, marca ou modelo..."
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto divide-y divide-slate-800/60">
+              {produtosFiltrados.length === 0 ? (
+                <div className="px-5 py-6 text-center text-slate-600 text-sm">
+                  Nenhum material encontrado.
+                </div>
+              ) : (
+                produtosFiltrados.map((p) => {
+                  const noLote = idsNoLote.has(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-3 px-5 py-3 transition-colors ${
+                        noLote ? 'bg-emerald-950/20' : 'hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${noLote ? 'bg-emerald-600/20' : 'bg-slate-800'}`}>
+                        <Package size={14} className={noLote ? 'text-emerald-400' : 'text-slate-500'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate ${noLote ? 'text-emerald-300' : 'text-white'}`}>
+                          {p.nome}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {p.marca && (
+                            <span className="text-xs text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{p.marca}</span>
+                          )}
+                          {p.modelo && (
+                            <span className="text-xs text-blue-400 bg-blue-950/50 px-1.5 py-0.5 rounded font-medium">{p.modelo}</span>
+                          )}
+                          <span className="text-xs text-slate-600">{p.estoqueTotal} {p.unidade} disp.</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => noLote ? removerDoLote(p.id) : adicionarAoLote(p.id)}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all text-sm font-bold ${
+                          noLote
+                            ? 'bg-emerald-600/20 text-emerald-400 hover:bg-red-950/40 hover:text-red-400'
+                            : 'bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white'
+                        }`}
+                        title={noLote ? 'Remover do pedido' : 'Adicionar ao pedido'}
+                      >
+                        {noLote ? '✓' : '+'}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           {/* Lista do lote */}
@@ -230,12 +280,13 @@ export function Entrada() {
             <div className="px-5 py-8 text-center text-slate-600">
               <ShoppingCart size={28} className="mx-auto mb-2 opacity-40" />
               <p className="text-sm">Nenhum material adicionado ainda.</p>
+              <p className="text-xs mt-1 text-slate-700">Clique em + nos materiais acima.</p>
             </div>
           ) : (
             <div>
               <div className="px-5 py-2 bg-slate-800/30 flex items-center justify-between">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Materiais a receber — {lote.length} item(ns)
+                  Pedido — {lote.length} {lote.length === 1 ? 'item' : 'itens'}
                 </p>
               </div>
               <div className="divide-y divide-slate-800/60">
@@ -244,19 +295,41 @@ export function Entrada() {
                     <div className="w-7 h-7 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
                       <Package size={14} className="text-violet-400" />
                     </div>
-                    <p className="text-white text-sm font-medium flex-1 truncate">{item.produtoNome}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{item.produtoNome}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {item.produtoMarca && (
+                          <span className="text-xs text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{item.produtoMarca}</span>
+                        )}
+                        {item.produtoModelo && (
+                          <span className="text-xs text-blue-400 bg-blue-950/50 px-1.5 py-0.5 rounded font-medium">{item.produtoModelo}</span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
-                        onClick={() => atualizarQtdLote(item.produtoId, item.quantidade - 1)}
-                        className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center text-xs font-bold transition-all"
-                      >−</button>
-                      <span className="w-10 text-center text-white font-bold text-sm">{item.quantidade}</span>
+                        onClick={() => atualizarQtdLote(item.produtoId, -1)}
+                        disabled={item.quantidade <= 1}
+                        className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-400 flex items-center justify-center transition-all"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={item.disponivel}
+                        value={item.quantidade}
+                        onChange={(e) => setQtdLote(item.produtoId, Number(e.target.value))}
+                        className="w-12 text-center bg-slate-800 border border-slate-700 rounded-md text-white font-bold text-sm py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
                       <button
-                        onClick={() => atualizarQtdLote(item.produtoId, item.quantidade + 1)}
+                        onClick={() => atualizarQtdLote(item.produtoId, 1)}
                         disabled={item.quantidade >= item.disponivel}
-                        className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-400 flex items-center justify-center text-xs font-bold transition-all"
-                      >+</button>
-                      <span className="text-slate-600 text-xs ml-1">{item.unidade}</span>
+                        className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-400 flex items-center justify-center transition-all"
+                      >
+                        <Plus size={12} />
+                      </button>
+                      <span className="text-slate-600 text-xs ml-1 w-6">{item.unidade}</span>
                     </div>
                     <button
                       onClick={() => removerDoLote(item.produtoId)}
