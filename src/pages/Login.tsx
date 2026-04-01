@@ -89,7 +89,7 @@ export function Login() {
               <span className="text-slate-500">Empresa:</span> use o <strong className="text-slate-400">mesmo nome</strong> cadastrado no admin (acentos e espaços são ignorados na busca).
             </p>
             <p className="text-xs text-slate-600 text-center">
-              <span className="text-slate-500">Senha inicial:</span> os <strong className="text-slate-400">8 primeiros dígitos do CNPJ</strong> (só números). Se o CNPJ tiver menos de 6 dígitos, use <strong className="text-slate-400">empresa123</strong>.
+              <span className="text-slate-500">Senha inicial:</span> sempre <strong className="text-slate-400">empresa123</strong> (troque após o primeiro acesso).
             </p>
           </div>
         </div>

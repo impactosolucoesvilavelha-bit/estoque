@@ -77,7 +77,7 @@ export function Empresas() {
       ) : (
         <div className="space-y-2">
           {filtered.map((e) => {
-            const senha = e.cnpj.replace(/\D/g, '').slice(0, 8) || 'empresa123';
+            const senhaInicial = 'empresa123';
             return (
               <div key={e.id} className="bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 flex items-start gap-4">
                 <div className="w-10 h-10 rounded-xl bg-emerald-600/20 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -89,7 +89,7 @@ export function Empresas() {
                   {e.contato && <p className="text-slate-600 text-xs">{e.contato}</p>}
                   <div className="flex items-center gap-1 mt-1.5">
                     <KeyRound size={11} className="text-slate-600" />
-                    <span className="text-xs text-slate-600">Senha: <span className="text-slate-500 font-mono">{senha}</span></span>
+                    <span className="text-xs text-slate-600">Senha inicial: <span className="text-slate-500 font-mono">{senhaInicial}</span></span>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0 items-center">
@@ -141,9 +141,9 @@ export function Empresas() {
                 placeholder="00.000.000/0000-00"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              {form.cnpj && (
+              {modal === 'add' && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Senha de acesso gerada: <span className="font-mono text-slate-400">{form.cnpj.replace(/\D/g, '').slice(0, 8) || '—'}</span>
+                  Senha inicial para login da empresa: <span className="font-mono text-slate-400">empresa123</span>
                 </p>
               )}
             </div>

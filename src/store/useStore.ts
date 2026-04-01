@@ -383,8 +383,7 @@ export const useStore = create<AppState>()(
       addEmpresa: async (data) => {
         const id = generateId();
         const empresa: Empresa = { ...data, id, criadoEm: new Date().toISOString() };
-        const cnpjDigits = data.cnpj.replace(/\D/g, '');
-        const senha = cnpjDigits.length >= 6 ? cnpjDigits.slice(0, 8) : 'empresa123';
+        const senha = 'empresa123';
         // Email único por ID de empresa — elimina conflito ao recriar empresa com mesmo nome
         const email = `${id}@gabriel-estoque.com`;
         const loginKey = normalizarNome(data.nome);
