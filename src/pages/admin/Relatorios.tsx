@@ -6,6 +6,15 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
+interface ItemRelatorio {
+  produtoId: string;
+  produtoNome: string;
+  quantidade: number;
+  observacao?: string;
+  /** Data/hora deste lançamento (cada linha de uso) */
+  data: string;
+}
+
 interface PedidoAgrupado {
   chave: string;
   numeroPedido: string;
@@ -13,12 +22,12 @@ interface PedidoAgrupado {
   empresaId: string;
   empresaNome: string;
   data: string;
-  itens: { produtoNome: string; quantidade: number; observacao?: string }[];
+  itens: ItemRelatorio[];
   totalItens: number;
 }
 
 export function Relatorios() {
-  const { empresas, usos, pedidosNF, atualizarStatusNF, arquivarPedidoNF, desarquivarPedidoNF } = useStore();
+  const { empresas, usos, produtos, pedidosNF, atualizarStatusNF, arquivarPedidoNF, desarquivarPedidoNF } = useStore();
   const [filtroEmpresa, setFiltroEmpresa] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'em_aberto' | 'emitida'>('todos');
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
@@ -42,16 +51,20 @@ export function Relatorios() {
       if (filtroDataFim && u.data > filtroDataFim + 'T23:59:59') return false;
       if (search) {
         const s = search.toLowerCase();
+        const pr = produtos.find((p) => p.id === u.produtoId);
+        const marcaModelo = [pr?.marca, pr?.modelo].filter(Boolean).join(' ').toLowerCase();
         return (
           u.igreja.toLowerCase().includes(s) ||
           u.numeroPedido.toLowerCase().includes(s) ||
           u.produtoNome.toLowerCase().includes(s) ||
-          u.empresaNome.toLowerCase().includes(s)
+          u.empresaNome.toLowerCase().includes(s) ||
+          marcaModelo.includes(s) ||
+          u.produtoId.toLowerCase().includes(s)
         );
       }
       return true;
     });
-  }, [usos, filtroEmpresa, filtroDataInicio, filtroDataFim, search]);
+  }, [usos, produtos, filtroEmpresa, filtroDataInicio, filtroDataFim, search]);
 
   const pedidosAgrupados = useMemo((): PedidoAgrupado[] => {
     const map: Record<string, PedidoAgrupado> = {};
@@ -61,7 +74,13 @@ export function Relatorios() {
         map[chave] = { chave, numeroPedido: u.numeroPedido, igreja: u.igreja, empresaId: u.empresaId, empresaNome: u.empresaNome, data: u.data, itens: [], totalItens: 0 };
       }
       if (u.data > map[chave].data) map[chave].data = u.data;
-      map[chave].itens.push({ produtoNome: u.produtoNome, quantidade: u.quantidade, observacao: u.observacao });
+      map[chave].itens.push({
+        produtoId: u.produtoId,
+        produtoNome: u.produtoNome,
+        quantidade: u.quantidade,
+        observacao: u.observacao,
+        data: u.data,
+      });
       map[chave].totalItens += u.quantidade;
     });
     return Object.values(map)
@@ -94,18 +113,40 @@ export function Relatorios() {
 
   const exportarCSV = () => {
     const rows = pedidosAgrupados.flatMap((p) =>
-      p.itens.map((item) => [
-        new Date(p.data).toLocaleDateString('pt-BR'),
-        p.empresaNome,
-        p.numeroPedido,
-        p.igreja,
-        getStatus(p.chave) === 'emitida' ? 'Emitida' : 'Em Aberto',
-        item.produtoNome,
-        item.quantidade,
-        item.observacao || '',
-      ])
+      p.itens.map((item) => {
+        const pr = produtos.find((x) => x.id === item.produtoId);
+        return [
+          new Date(p.data).toLocaleDateString('pt-BR'),
+          p.empresaNome,
+          p.numeroPedido,
+          p.igreja,
+          getStatus(p.chave) === 'emitida' ? 'Emitida' : 'Em Aberto',
+          item.produtoId,
+          item.produtoNome,
+          pr?.marca || '',
+          pr?.modelo || '',
+          pr?.unidade || '',
+          new Date(item.data).toLocaleString('pt-BR'),
+          item.quantidade,
+          item.observacao || '',
+        ];
+      })
     );
-    const headers = ['Data', 'Empresa', 'Nº Pedido', 'Igreja', 'Status NF', 'Produto', 'Quantidade', 'Observação'];
+    const headers = [
+      'Data pedido',
+      'Empresa',
+      'Nº Pedido',
+      'Igreja',
+      'Status NF',
+      'ID produto',
+      'Produto',
+      'Marca',
+      'Modelo',
+      'Unidade',
+      'Data/hora uso',
+      'Quantidade',
+      'Observação',
+    ];
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -320,23 +361,69 @@ export function Relatorios() {
                 {/* Itens expandidos */}
                 {isExpanded && (
                   <div className="border-t border-slate-800">
-                    <div className="px-5 py-2 bg-slate-800/50 grid grid-cols-12 gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      <span className="col-span-6 flex items-center gap-1.5"><PackageIcon size={12} /> Material</span>
-                      <span className="col-span-2 text-right">Qtd</span>
-                      <span className="col-span-4 text-right">Observação</span>
+                    <div className="px-5 py-2 bg-slate-800/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5"><PackageIcon size={12} /> Materiais utilizados</span>
                     </div>
-                    {pedido.itens.map((item, i) => (
-                      <div key={i} className="px-5 py-3 grid grid-cols-12 gap-2 items-center border-t border-slate-800/60 hover:bg-slate-800/20 transition-colors">
-                        <div className="col-span-6 flex items-center gap-2">
-                          <div className="w-5 h-5 rounded bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
-                            <PackageIcon size={11} className="text-emerald-500" />
+                    {pedido.itens.map((item, i) => {
+                      const pr = produtos.find((x) => x.id === item.produtoId);
+                      const dataUso = new Date(item.data);
+                      return (
+                        <div
+                          key={`${item.produtoId}-${item.data}-${i}`}
+                          className="px-5 py-3 border-t border-slate-800/60 hover:bg-slate-800/20 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
+                              <PackageIcon size={16} className="text-emerald-500" />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <p className="text-white text-sm font-semibold leading-snug">{item.produtoNome}</p>
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                {pr?.marca && (
+                                  <span className="text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">
+                                    Marca: <span className="text-slate-100">{pr.marca}</span>
+                                  </span>
+                                )}
+                                {pr?.modelo && (
+                                  <span className="text-blue-300 bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-900/50">
+                                    Modelo: <span className="text-blue-100">{pr.modelo}</span>
+                                  </span>
+                                )}
+                                <span className="text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
+                                  Unidade: <span className="text-slate-200">{pr?.unidade ?? '—'}</span>
+                                </span>
+                                <span className="text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded-md">
+                                  ID: <span className="font-mono text-slate-400">{item.produtoId}</span>
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                                <span>
+                                  Data/hora do uso:{' '}
+                                  <span className="text-slate-300">
+                                    {dataUso.toLocaleString('pt-BR', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </span>
+                              </div>
+                              <p className="text-slate-400 text-xs leading-relaxed border-l-2 border-slate-600 pl-2">
+                                <span className="text-slate-500">Observação: </span>
+                                {item.observacao || '—'}
+                              </p>
+                            </div>
+                            <div className="flex sm:flex-col items-center sm:items-end gap-1 sm:min-w-[5rem] flex-shrink-0">
+                              <span className="text-[10px] uppercase text-slate-500 font-semibold sm:hidden">Quantidade</span>
+                              <span className="text-amber-400 font-bold text-lg tabular-nums">{item.quantidade}</span>
+                              <span className="text-slate-500 text-xs">{pr?.unidade ?? 'un'}</span>
+                            </div>
                           </div>
-                          <p className="text-slate-200 text-sm font-medium">{item.produtoNome}</p>
                         </div>
-                        <p className="col-span-2 text-right text-amber-400 font-bold text-sm">{item.quantidade}</p>
-                        <p className="col-span-4 text-right text-slate-600 text-xs truncate">{item.observacao || '—'}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div className="px-5 py-3 bg-slate-800/30 border-t border-slate-700/50 flex items-center justify-between">
                       <p className="text-xs text-slate-500">Total do pedido</p>
                       <p className="text-amber-400 font-bold">{pedido.totalItens} itens</p>
