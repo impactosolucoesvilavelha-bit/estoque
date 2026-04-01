@@ -2,21 +2,18 @@
   "name": "Controle de Estoque",
   "short_name": "Estoque",
   "description": "Sistema de controle de estoque para fornecedores e empresas clientes",
-  "start_url": "/",
+  "start_url": "/estoque/",
+  "scope": "/estoque/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/estoque/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

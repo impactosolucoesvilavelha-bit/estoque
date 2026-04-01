@@ -61,6 +61,7 @@ function clearSubs() {
 
 function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
   clearSubs();
+  const eid = empresaId != null && empresaId !== '' ? String(empresaId) : undefined;
 
   // Todos os usuários precisam da lista de produtos
   unsubs.push(
@@ -127,23 +128,23 @@ function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
         useStore.setState({ pedidosNF: mapped });
       }),
     );
-  } else if (empresaId) {
+  } else if (eid) {
     // Empresa: lê apenas os próprios dados (economiza downloads)
     unsubs.push(
-      onValue(dbRef(db, `empresas/${empresaId}`), (snap) => {
+      onValue(dbRef(db, `empresas/${eid}`), (snap) => {
         const data = snap.val();
         if (data) {
-          useStore.setState({ empresas: [{ id: empresaId, ...data } as Empresa] });
+          useStore.setState({ empresas: [{ id: eid, ...data } as Empresa] });
         }
       }),
     );
     unsubs.push(
-      onValue(dbRef(db, `distribuicoes/${empresaId}`), (snap) => {
+      onValue(dbRef(db, `distribuicoes/${eid}`), (snap) => {
         useStore.setState({ distribuicoes: toArray<Distribuicao>(snap.val()) });
       }),
     );
     unsubs.push(
-      onValue(dbRef(db, `usos/${empresaId}`), (snap) => {
+      onValue(dbRef(db, `usos/${eid}`), (snap) => {
         useStore.setState({ usos: toArray<UsoMaterial>(snap.val()) });
       }),
     );
@@ -238,19 +239,21 @@ export const useStore = create<AppState>()(
                   return;
                 }
 
-                const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: data.empresaId };
+                const empresaIdNorm =
+                  data.empresaId != null && data.empresaId !== '' ? String(data.empresaId) : undefined;
+                const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: empresaIdNorm };
 
-                setupListeners(data.role, data.empresaId);
+                setupListeners(data.role, empresaIdNorm);
 
                 // Para empresa: tenta pré-carregar via dbGet antes de renderizar
-                if (data.role === 'empresa' && data.empresaId) {
+                if (data.role === 'empresa' && empresaIdNorm) {
                   // Não zera empresas aqui: apagar [] antes do Firebase responder deixava a tela em loading
                   // eterno se dbGet falhasse ou demorasse; mantém cache persistido até os listeners/dbGet atualizarem.
                   set({ currentUser: user, authReady: true, _uid: fbUser.uid, aguardandoSenha: false, nomeAguardando: null });
                   try {
-                    const eSnap = await dbGet(dbRef(db, `empresas/${data.empresaId}`));
+                    const eSnap = await dbGet(dbRef(db, `empresas/${empresaIdNorm}`));
                     if (eSnap.exists()) {
-                      useStore.setState({ empresas: [{ id: data.empresaId, ...eSnap.val() } as Empresa] });
+                      useStore.setState({ empresas: [{ id: empresaIdNorm, ...eSnap.val() } as Empresa] });
                     }
                   } catch { /* onValue em empresas/${id} continua tentando */ }
                 } else {
@@ -312,16 +315,18 @@ export const useStore = create<AppState>()(
           const snap = await dbGet(dbRef(db, `users/${fbUser.uid}`));
           if (!snap.exists()) return false;
           const data = snap.val() as { nome: string; role: 'admin' | 'empresa'; empresaId?: string };
-          const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: data.empresaId };
+          const empresaIdNorm =
+            data.empresaId != null && data.empresaId !== '' ? String(data.empresaId) : undefined;
+          const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: empresaIdNorm };
 
-          setupListeners(data.role, data.empresaId);
+          setupListeners(data.role, empresaIdNorm);
           set({ currentUser: user, aguardandoSenha: false, nomeAguardando: null, _uid: fbUser.uid });
 
-          if (data.role === 'empresa' && data.empresaId) {
+          if (data.role === 'empresa' && empresaIdNorm) {
             try {
-              const eSnap = await dbGet(dbRef(db, `empresas/${data.empresaId}`));
+              const eSnap = await dbGet(dbRef(db, `empresas/${empresaIdNorm}`));
               if (eSnap.exists()) {
-                useStore.setState({ empresas: [{ id: data.empresaId, ...eSnap.val() } as Empresa] });
+                useStore.setState({ empresas: [{ id: empresaIdNorm, ...eSnap.val() } as Empresa] });
               }
             } catch { /* onValue em empresas/${id} continua tentando */ }
           }
@@ -499,15 +504,12 @@ export const useStore = create<AppState>()(
 
     }),
     {
-      name: 'estoque-pwa-cache',
+      // Novo nome evita merge antigo que guardava empresas/distrib/usos vazios e sobrescrevia o Firebase após reidratar.
+      name: 'estoque-pwa-cache-v3',
       storage: createJSONStorage(() => localStorage),
-      // Persiste apenas os dados — nunca estado de auth (segurança)
       partialize: (state) => ({
         _uid: state._uid,
         produtos: state.produtos,
-        empresas: state.empresas,
-        distribuicoes: state.distribuicoes,
-        usos: state.usos,
         pedidosNF: state.pedidosNF,
       }),
     },
