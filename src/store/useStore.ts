@@ -47,9 +47,16 @@ const fbSafeKey = (key: string) => key.replace(/[.#$[\]/]/g, '_');
 // ─── Subscriptions ───────────────────────────────────────────────────────────
 
 const unsubs: Unsubscribe[] = [];
+/** Listeners admin por empresa (distribuicoes/{id}, usos/{id}) — não pode ler o nó pai por causa das regras RTDB */
+const adminChildUnsubs: Unsubscribe[] = [];
+
+function clearAdminChildSubs() {
+  while (adminChildUnsubs.length) adminChildUnsubs.pop()?.();
+}
 
 function clearSubs() {
   while (unsubs.length) unsubs.pop()?.();
+  clearAdminChildSubs();
 }
 
 function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
@@ -63,41 +70,44 @@ function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
   );
 
   if (role === 'admin') {
+    // Empresas + listeners por empresa em distribuicoes/usos (regras RTDB não permitem .read no pai para não-admin)
     unsubs.push(
       onValue(dbRef(db, 'empresas'), (snap) => {
         useStore.setState({ empresas: toArray<Empresa>(snap.val()) });
-      }),
-    );
-
-    // Distribuições aninhadas: /distribuicoes/{empresaId}/{id}
-    unsubs.push(
-      onValue(dbRef(db, 'distribuicoes'), (snap) => {
-        const nested = snap.val() as Record<string, Record<string, object>> | null;
-        const flat: Distribuicao[] = [];
-        if (nested) {
-          Object.values(nested).forEach((items) =>
-            Object.entries(items).forEach(([id, item]) =>
-              flat.push({ id, ...(item as object) } as Distribuicao),
-            ),
-          );
+        clearAdminChildSubs();
+        const raw = snap.val() as Record<string, object> | null;
+        if (!raw) {
+          useStore.setState({ distribuicoes: [], usos: [] });
+          return;
         }
-        useStore.setState({ distribuicoes: flat });
-      }),
-    );
-
-    // Usos aninhados: /usos/{empresaId}/{id}
-    unsubs.push(
-      onValue(dbRef(db, 'usos'), (snap) => {
-        const nested = snap.val() as Record<string, Record<string, object>> | null;
-        const flat: UsoMaterial[] = [];
-        if (nested) {
-          Object.values(nested).forEach((items) =>
-            Object.entries(items).forEach(([id, item]) =>
-              flat.push({ id, ...(item as object) } as UsoMaterial),
-            ),
+        const empresaIds = Object.keys(raw);
+        const distPorEmpresa: Record<string, Distribuicao[]> = {};
+        const usosPorEmpresa: Record<string, UsoMaterial[]> = {};
+        const mergeDist = () => {
+          useStore.setState({ distribuicoes: Object.values(distPorEmpresa).flat() });
+        };
+        const mergeUsos = () => {
+          useStore.setState({ usos: Object.values(usosPorEmpresa).flat() });
+        };
+        empresaIds.forEach((eid) => {
+          distPorEmpresa[eid] = [];
+          usosPorEmpresa[eid] = [];
+          adminChildUnsubs.push(
+            onValue(dbRef(db, `distribuicoes/${eid}`), (s) => {
+              distPorEmpresa[eid] = toArray<Distribuicao>(s.val());
+              mergeDist();
+            }),
           );
+          adminChildUnsubs.push(
+            onValue(dbRef(db, `usos/${eid}`), (s) => {
+              usosPorEmpresa[eid] = toArray<UsoMaterial>(s.val());
+              mergeUsos();
+            }),
+          );
+        });
+        if (empresaIds.length === 0) {
+          useStore.setState({ distribuicoes: [], usos: [] });
         }
-        useStore.setState({ usos: flat });
       }),
     );
 
