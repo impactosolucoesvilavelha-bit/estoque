@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Building2, ArrowRightLeft,
-  FileBarChart2, Warehouse, ClipboardList, LogOut, Menu, X, ChevronRight, PackagePlus
+  FileBarChart2, Warehouse, ClipboardList, LogOut, Menu, X, ChevronRight, PackagePlus,
+  RefreshCw,
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { useAppUpdate } from '../hooks/useAppUpdate';
 
 interface NavItem {
   label: string;
@@ -30,6 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { currentUser, logout } = useStore();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { updateAvailable, remoteVersion, applying, applyUpdate } = useAppUpdate();
 
   const nav = currentUser?.role === 'admin' ? adminNav : empresaNav;
 
@@ -149,6 +152,39 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {updateAvailable && remoteVersion && (
+        <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-6 md:max-w-md pointer-events-auto">
+          <div className="rounded-2xl border border-emerald-700/50 bg-slate-900/95 backdrop-blur-sm shadow-2xl shadow-black/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600/20 flex items-center justify-center flex-shrink-0">
+                <RefreshCw size={20} className="text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-white text-sm font-semibold">Atualização disponível</p>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Nova versão <span className="text-emerald-400 font-mono">v{remoteVersion}</span>
+                  {' · '}
+                  você está em <span className="text-slate-500 font-mono">v{__APP_VERSION__}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={applying}
+              onClick={() => void applyUpdate()}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-sm font-semibold transition-all flex-shrink-0"
+            >
+              {applying ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <RefreshCw size={16} />
+              )}
+              {applying ? 'Atualizando…' : 'Atualizar agora'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
