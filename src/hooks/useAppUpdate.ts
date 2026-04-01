@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 
 const currentVersion = __APP_VERSION__;
 
+/** Intervalo entre checagens de nova versão (ms). 1 min — ajuste se precisar menos carga em produção. */
+const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
+
 async function fetchRemoteVersion(): Promise<string | null> {
   try {
     const base = import.meta.env.BASE_URL;
@@ -32,7 +35,7 @@ export function useAppUpdate() {
   useEffect(() => {
     if (import.meta.env.DEV) return;
     void check();
-    const id = window.setInterval(() => void check(), 5 * 60 * 1000);
+    const id = window.setInterval(() => void check(), VERSION_CHECK_INTERVAL_MS);
     const onVis = () => {
       if (document.visibilityState === 'visible') void check();
     };

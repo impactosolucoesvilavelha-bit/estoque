@@ -30,6 +30,7 @@ export function Dashboard() {
           icon={<Package size={22} />}
           color="blue"
           subtitle="cadastrados"
+          to="/admin/produtos"
         />
         <StatCard
           title="Empresas"
@@ -37,6 +38,7 @@ export function Dashboard() {
           icon={<Building2 size={22} />}
           color="emerald"
           subtitle="clientes"
+          to="/admin/empresas"
         />
         <StatCard
           title="Distribuições"
@@ -44,6 +46,7 @@ export function Dashboard() {
           icon={<ArrowRightLeft size={22} />}
           color="violet"
           subtitle="unidades enviadas"
+          to="/admin/distribuicoes"
         />
         <StatCard
           title="Uso Registrado"
@@ -51,6 +54,7 @@ export function Dashboard() {
           icon={<ClipboardList size={22} />}
           color="amber"
           subtitle="unidades usadas"
+          to="/admin/relatorios"
         />
       </div>
 
