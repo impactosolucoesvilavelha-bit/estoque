@@ -1,10 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Warehouse, Package, AlertTriangle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import type { MiniEstoque } from '../../types';
 
 export function MeuEstoque() {
   const { currentUser, empresas, distribuicoes, usos, produtos } = useStore();
+  const [carregamentoDemorou, setCarregamentoDemorou] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser?.empresaId || empresas.length > 0) {
+      setCarregamentoDemorou(false);
+      return;
+    }
+    const t = window.setTimeout(() => setCarregamentoDemorou(true), 12000);
+    return () => window.clearTimeout(t);
+  }, [currentUser?.empresaId, empresas.length]);
 
   const empresa = useMemo(
     () => empresas.find((e) => e.id === currentUser?.empresaId),
@@ -57,6 +67,22 @@ export function MeuEstoque() {
 
   if (!empresa) {
     if (currentUser?.empresaId && empresas.length === 0) {
+      if (carregamentoDemorou) {
+        return (
+          <div className="text-center py-20 px-4 max-w-md mx-auto space-y-4">
+            <AlertTriangle size={40} className="mx-auto text-amber-400 opacity-80" />
+            <p className="text-slate-200 text-sm font-medium">Não foi possível carregar os dados da empresa</p>
+            <p className="text-slate-500 text-xs">Verifique a conexão e as regras do Firebase. Se o problema continuar, atualize a página.</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold"
+            >
+              Atualizar página
+            </button>
+          </div>
+        );
+      }
       return (
         <div className="flex items-center justify-center py-32">
           <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />

@@ -244,15 +244,15 @@ export const useStore = create<AppState>()(
 
                 // Para empresa: tenta pré-carregar via dbGet antes de renderizar
                 if (data.role === 'empresa' && data.empresaId) {
-                  // Seta o usuário imediatamente (mostra loading no componente)
-                  set({ currentUser: user, authReady: true, _uid: fbUser.uid, aguardandoSenha: false, nomeAguardando: null, empresas: [] });
-                  // Busca a empresa diretamente e força atualização
+                  // Não zera empresas aqui: apagar [] antes do Firebase responder deixava a tela em loading
+                  // eterno se dbGet falhasse ou demorasse; mantém cache persistido até os listeners/dbGet atualizarem.
+                  set({ currentUser: user, authReady: true, _uid: fbUser.uid, aguardandoSenha: false, nomeAguardando: null });
                   try {
                     const eSnap = await dbGet(dbRef(db, `empresas/${data.empresaId}`));
                     if (eSnap.exists()) {
                       useStore.setState({ empresas: [{ id: data.empresaId, ...eSnap.val() } as Empresa] });
                     }
-                  } catch { /* listener onValue vai tentar novamente */ }
+                  } catch { /* onValue em empresas/${id} continua tentando */ }
                 } else {
                   set({
                     currentUser: user,
@@ -315,7 +315,7 @@ export const useStore = create<AppState>()(
           const user: User = { id: fbUser.uid, nome: data.nome, role: data.role, empresaId: data.empresaId };
 
           setupListeners(data.role, data.empresaId);
-          set({ currentUser: user, aguardandoSenha: false, nomeAguardando: null, _uid: fbUser.uid, empresas: [] });
+          set({ currentUser: user, aguardandoSenha: false, nomeAguardando: null, _uid: fbUser.uid });
 
           if (data.role === 'empresa' && data.empresaId) {
             try {
@@ -323,7 +323,7 @@ export const useStore = create<AppState>()(
               if (eSnap.exists()) {
                 useStore.setState({ empresas: [{ id: data.empresaId, ...eSnap.val() } as Empresa] });
               }
-            } catch { /* listener onValue vai tentar novamente */ }
+            } catch { /* onValue em empresas/${id} continua tentando */ }
           }
           return true;
         } catch {
