@@ -83,15 +83,6 @@ export function Login() {
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
-
-          <div className="mt-5 pt-4 border-t border-slate-800 space-y-1">
-            <p className="text-xs text-slate-600 text-center">
-              <span className="text-slate-500">Empresa:</span> use o <strong className="text-slate-400">mesmo nome</strong> cadastrado no admin (acentos e espaços são ignorados na busca).
-            </p>
-            <p className="text-xs text-slate-600 text-center">
-              <span className="text-slate-500">Senha inicial:</span> sempre <strong className="text-slate-400">empresa123</strong> (troque após o primeiro acesso).
-            </p>
-          </div>
         </div>
       </div>
     </div>

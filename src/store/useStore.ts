@@ -131,7 +131,8 @@ function setupListeners(role: 'admin' | 'empresa', empresaId?: string) {
   } else if (eid) {
     const aplicarEmpresa = (data: Record<string, unknown> | null) => {
       if (data && typeof data === 'object') {
-        useStore.setState({ empresas: [{ id: eid, ...data } as Empresa] });
+        // id do path (eid) deve prevalecer — senão o JSON em empresas/{eid} sobrescreve e quebra writes em distribuicoes/{empresaId}
+        useStore.setState({ empresas: [{ ...data, id: eid } as Empresa] });
       }
     };
 
@@ -270,7 +271,7 @@ export const useStore = create<AppState>()(
                   try {
                     const eSnap = await dbGet(dbRef(db, `empresas/${empresaIdNorm}`));
                     if (eSnap.exists()) {
-                      useStore.setState({ empresas: [{ id: empresaIdNorm, ...eSnap.val() } as Empresa] });
+                      useStore.setState({ empresas: [{ ...eSnap.val(), id: empresaIdNorm } as Empresa] });
                     }
                   } catch { /* onValue em empresas/${id} continua tentando */ }
                 } else {
@@ -349,7 +350,7 @@ export const useStore = create<AppState>()(
             try {
               const eSnap = await dbGet(dbRef(db, `empresas/${empresaIdNorm}`));
               if (eSnap.exists()) {
-                useStore.setState({ empresas: [{ id: empresaIdNorm, ...eSnap.val() } as Empresa] });
+                useStore.setState({ empresas: [{ ...eSnap.val(), id: empresaIdNorm } as Empresa] });
               }
             } catch { /* onValue em empresas/${id} continua tentando */ }
           }
