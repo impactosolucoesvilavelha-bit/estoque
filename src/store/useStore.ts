@@ -218,8 +218,8 @@ interface AppState {
   addDistribuicoes: (dists: Omit<Distribuicao, 'id'>[]) => Promise<void>;
   deleteDistribuicao: (id: string) => void;
 
-  addUso: (uso: Omit<UsoMaterial, 'id'>) => void;
-  addUsos: (usos: Omit<UsoMaterial, 'id'>[]) => void;
+  addUso: (uso: Omit<UsoMaterial, 'id'>) => Promise<void>;
+  addUsos: (usos: Omit<UsoMaterial, 'id'>[]) => Promise<void>;
   deleteUso: (id: string) => void;
 
   atualizarStatusNF: (chave: string, status: StatusNF) => void;
@@ -517,19 +517,40 @@ export const useStore = create<AppState>()(
 
       // ── Usos ─────────────────────────────────────────────────────────────────
 
-      addUso: (data) => {
+      addUso: async (data) => {
         const id = generateId();
-        const uso: UsoMaterial = { ...data, id };
+        const cu = get().currentUser;
+        const eidRtdb = await empresaIdCanonicoParaWrite();
+        const empresaIdBase =
+          cu?.role === 'admin'
+            ? String(data.empresaId)
+            : eidRtdb ?? String(data.empresaId);
+        const uso: UsoMaterial = { ...data, id, empresaId: empresaIdBase };
+        const payload = omitUndefined({ ...uso } as Record<string, unknown>);
+        await dbSet(dbRef(db, `usos/${empresaIdBase}/${id}`), payload);
         set((s) => ({ usos: [...s.usos, uso] }));
-        dbSet(dbRef(db, `usos/${data.empresaId}/${id}`), uso);
       },
 
-      addUsos: (dados) => {
-        const novas = dados.map((d) => ({ ...d, id: generateId() }));
-        set((s) => ({ usos: [...s.usos, ...novas] }));
+      addUsos: async (dados) => {
+        if (dados.length === 0) return;
+
+        const cu = get().currentUser;
+        const eidRtdb = await empresaIdCanonicoParaWrite();
+        const empresaIdBase =
+          cu?.role === 'admin'
+            ? String(dados[0].empresaId)
+            : eidRtdb ?? (cu?.empresaId != null && cu.empresaId !== '' ? String(cu.empresaId) : String(dados[0].empresaId));
+
+        const novas: UsoMaterial[] = [];
         const updates: Record<string, unknown> = {};
-        novas.forEach((u) => { updates[`usos/${u.empresaId}/${u.id}`] = u; });
-        dbUpdate(dbRef(db), updates);
+        for (const item of dados) {
+          const id = generateId();
+          const uso: UsoMaterial = { ...item, id, empresaId: empresaIdBase };
+          novas.push(uso);
+          updates[`usos/${empresaIdBase}/${id}`] = omitUndefined({ ...uso } as Record<string, unknown>);
+        }
+        await dbUpdate(dbRef(db), updates);
+        set((s) => ({ usos: [...s.usos, ...novas] }));
       },
 
       deleteUso: (id) => {
