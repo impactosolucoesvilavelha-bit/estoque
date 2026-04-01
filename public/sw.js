@@ -1,7 +1,7 @@
-const CACHE_NAME = 'estoque-pwa-v3';
+const CACHE_NAME = 'estoque-pwa-v4';
 const urlsToCache = [
-  '/',
-  '/index.html',
+  '/estoque/',
+  '/estoque/index.html',
 ];
 
 self.addEventListener('install', (event) => {
@@ -35,7 +35,7 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() =>
         caches.match(event.request).then((cached) =>
-          cached ?? caches.match('/index.html')
+          cached ?? caches.match('/estoque/index.html')
         )
       )
   );
