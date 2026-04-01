@@ -23,7 +23,21 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/estoque/sw.js');
+          // Se já havia um SW ativo, monitoramos a troca de controle.
+          // Quando um novo SW assume (skipWaiting), recarregamos automaticamente.
+          const jaTemControlador = !!navigator.serviceWorker.controller;
+          let recarregando = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (jaTemControlador && !recarregando) {
+              recarregando = true;
+              window.location.reload();
+            }
+          });
+
+          navigator.serviceWorker.register('/estoque/sw.js').then((reg) => {
+            // Verifica atualização do SW a cada 60 minutos
+            setInterval(() => reg.update(), 60 * 60 * 1000);
+          });
         });
       }
     </script>
